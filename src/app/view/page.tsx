@@ -7,10 +7,14 @@ import {
   useState,
   useSyncExternalStore,
 } from "react";
+import { AlertCircleIcon } from "lucide-react";
 
 import { decode as decodeQuery } from "@/lib/query";
 import type { Pandoc } from "@/lib/pandoc";
 import { newPandoc } from "@/lib/pandoc";
+
+import { Spinner } from "@/components/ui/spinner";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 
 let pandoc: Promise<Pandoc> | undefined;
 
@@ -66,26 +70,34 @@ function useHash(): string | null {
 
 export default function Page(): React.ReactNode {
   const hash = useHash();
+  const [err, setErr] = useState<string | null>(null);
   const [contentUrl, setContentUrl] = useState<URL | null>(null);
   const ref = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const abort = new AbortController();
     (async (signal) => {
+      setErr(null);
+
       if (hash === null) {
         setContentUrl(null);
         return;
       }
 
-      const query = await decodeQuery(hash);
-      const content = await render(new URL(query.url), query.args);
-      if (signal.aborted) {
-        return;
-      }
+      try {
+        const query = await decodeQuery(hash);
+        const content = await render(new URL(query.url), query.args);
+        if (signal.aborted) {
+          return;
+        }
 
-      const contentUrl = URL.createObjectURL(content);
-      signal.addEventListener("abort", () => URL.revokeObjectURL(contentUrl));
-      setContentUrl(new URL(contentUrl));
+        const contentUrl = URL.createObjectURL(content);
+        signal.addEventListener("abort", () => URL.revokeObjectURL(contentUrl));
+        setContentUrl(new URL(contentUrl));
+      } catch (err) {
+        console.error(err);
+        setErr("Error occurred.");
+      }
     })(abort.signal);
     return () => abort.abort();
   }, [hash]);
@@ -98,8 +110,23 @@ export default function Page(): React.ReactNode {
     ref.current?.focus();
   }, [contentUrl]);
 
+  if (err !== null) {
+    return (
+      <>
+        <Alert variant="destructive">
+          <AlertCircleIcon />
+          <AlertTitle>{err}</AlertTitle>
+        </Alert>
+      </>
+    );
+  }
+
   if (contentUrl === null) {
-    return;
+    return (
+      <div className="m-2">
+        <Spinner className="inline-block size-8" /> Loading...
+      </div>
+    );
   }
 
   return (
