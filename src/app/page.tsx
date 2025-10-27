@@ -29,9 +29,11 @@ const argsItems = {
     "-fmarkdown",
     "-trevealjs",
     "-s",
-    "-Vrevealjs-url=https://unpkg.com/reveal.js@^4",
+    "-Vrevealjs-url=https://unpkg.com/reveal.js@^5",
     "--slide-level=3",
   ],
+  "md-slidy": ["-fmarkdown", "-tslidy", "-s", "--slide-level=3"],
+  "md-dzslides": ["-fmarkdown", "-tdzslides", "-s", "--slide-level=3"],
 } satisfies Record<string, string[]>;
 
 function isArgsItemsKey(val: string): val is keyof typeof argsItems {
