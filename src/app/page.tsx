@@ -99,6 +99,7 @@ export default function Page(): React.ReactNode {
                 <Input
                   id={urlId}
                   required
+                  placeholder="https://gist.github.com/:user/:id or something"
                   value={href}
                   onChange={(event) => setHref(event.target.value)}
                 />
