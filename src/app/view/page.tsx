@@ -154,11 +154,59 @@ function useHash(): string | null {
   return hash;
 }
 
+function Iframe(
+  props: React.ComponentPropsWithoutRef<"iframe">,
+): React.ReactNode {
+  const ref = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => ref.current?.focus(), []);
+
+  useEffect(() => {
+    if (ref.current === null || ref.current.contentWindow === null) {
+      throw new Error();
+    }
+
+    const abort = new AbortController();
+
+    ref.current.contentWindow.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        if (ref.current === null || ref.current.contentDocument === null) {
+          throw new Error();
+        }
+
+        for (const a of ref.current.contentDocument.querySelectorAll("a")) {
+          if (a.target !== "") {
+            continue;
+          }
+
+          if (
+            (a.protocol === "http:" || a.protocol === "https:") &&
+            a.origin !== window.origin
+          ) {
+            a.target = "_blank";
+          } else {
+            a.target = "_top";
+          }
+        }
+      },
+      { signal: abort.signal },
+    );
+
+    return () => abort.abort();
+  }, []);
+
+  return (
+    <>
+      <iframe ref={ref} {...props} />
+    </>
+  );
+}
+
 export default function Page(): React.ReactNode {
   const hash = useHash();
   const [err, setErr] = useState<string | null>(null);
   const [contentUrl, setContentUrl] = useState<URL | null>(null);
-  const ref = useRef<HTMLIFrameElement>(null);
 
   useEffect(() => {
     const abort = new AbortController();
@@ -191,14 +239,6 @@ export default function Page(): React.ReactNode {
     return () => abort.abort();
   }, [hash]);
 
-  useEffect(() => {
-    if (contentUrl === null) {
-      return;
-    }
-
-    ref.current?.focus();
-  }, [contentUrl]);
-
   if (err !== null) {
     return (
       <>
@@ -220,7 +260,7 @@ export default function Page(): React.ReactNode {
 
   return (
     <>
-      <iframe ref={ref} src={contentUrl.href} className="w-screen h-screen" />
+      <Iframe src={contentUrl.href} className="w-screen h-screen" />
     </>
   );
 }
